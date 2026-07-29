@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>County Population Trends — U.S. Census 2020–2025</title>
+<style>
+  :root {
+    --bg: #1a1a24;
+    --surface: #1f1f2e;
+    --surface2: #282840;
+    --text: #e0e0e0;
+    --text2: #9090a0;
+    --accent: #7cc8a0;
+    --accent2: #4fa07c;
+    --growing: #4ecca3;
+    --shrinking: #e74c3c;
+    --stable: #f0c040;
+    --border: #2a2a44;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; }
+  .container { max-width: 900px; margin: 0 auto; padding: 20px; }
+
+  header { text-align: center; padding: 40px 20px 20px; }
+  header h1 { font-size: 1.8em; color: var(--accent); margin-bottom: 6px; }
+  header p { color: var(--text2); font-size: 0.95em; }
+
+  .modes { display: flex; gap: 8px; margin: 0 auto 20px; max-width: 460px; }
+  .modes button { flex: 1; padding: 10px; border: 1px solid var(--border); background: var(--surface); color: var(--text); cursor: pointer; font-size: 0.9em; border-radius: 6px; transition: all 0.2s; }
+  .modes button.active { background: var(--accent); border-color: var(--accent); color: var(--bg); font-weight: 600; }
+  .modes button:hover:not(.active) { background: var(--surface2); }
+
+  .search-box { max-width: 600px; margin: 0 auto 30px; }
+  .search-box input { width: 100%; padding: 14px 18px; font-size: 1em; border: 2px solid var(--border); background: var(--surface); color: var(--text); border-radius: 8px; outline: none; }
+  .search-box input:focus { border-color: var(--accent); }
+
+  .results { max-width: 750px; margin: 0 auto; }
+  .result-item { display: flex; align-items: center; padding: 14px 16px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.15s; }
+  .result-item:hover { background: var(--surface); }
+  .result-item .info { flex: 1; }
+  .result-item .name { font-weight: 600; }
+  .result-item .location { color: var(--text2); font-size: 0.85em; }
+  .result-item .change-badge { flex-shrink: 0; padding: 4px 12px; border-radius: 12px; font-size: 0.8em; font-weight: 600; margin-left: 10px; }
+  .change-up { background: #1a2d20; color: var(--growing); border: 1px solid #306030; }
+  .change-down { background: #2d1a1a; color: var(--shrinking); border: 1px solid #603030; }
+  .change-flat { background: #2d2a1a; color: var(--stable); border: 1px solid #605030; }
+
+  .detail-panel { background: var(--surface); border-radius: 10px; padding: 24px; margin: 20px auto; max-width: 750px; display: none; }
+  .detail-panel.active { display: block; }
+  .detail-panel .back { background: none; border: none; color: var(--accent); cursor: pointer; font-size: 0.9em; padding: 0; margin-bottom: 16px; }
+  .detail-panel h2 { font-size: 1.4em; margin-bottom: 4px; }
+  .detail-panel .subtitle { color: var(--text2); margin-bottom: 20px; font-size: 0.9em; }
+
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 20px; }
+  .stat-card { background: var(--surface2); border-radius: 8px; padding: 12px; text-align: center; }
+  .stat-card .big { font-size: 1.4em; font-weight: 700; }
+  .stat-card .big.up { color: var(--growing); }
+  .stat-card .big.down { color: var(--shrinking); }
+  .stat-card .big.neutral { color: var(--stable); }
+  .stat-card .small { font-size: 0.75em; color: var(--text2); margin-top: 4px; }
+
+  .section { margin-bottom: 20px; }
+  .section h3 { font-size: 0.95em; color: var(--accent); margin-bottom: 8px; border-bottom: 1px solid var(--border); padding-bottom: 4px; }
+
+  .trend-chart { display: flex; gap: 4px; align-items: flex-end; height: 130px; margin: 8px 0; }
+  .trend-bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; }
+  .trend-bar { width: 100%; max-width: 55px; border-radius: 3px 3px 0 0; min-height: 4px; transition: height 0.3s; }
+  .trend-label { font-size: 0.7em; color: var(--text2); margin-top: 4px; }
+  .trend-pop { font-size: 0.65em; color: var(--text2); margin-top: 2px; }
+
+  .component-row { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+  .component-row .label { width: 160px; font-size: 0.82em; flex-shrink: 0; }
+  .component-row .bar-track { flex: 1; height: 20px; background: var(--surface2); border-radius: 3px; overflow: hidden; position: relative; }
+  .component-row .bar-fill { height: 100%; border-radius: 3px; transition: width 0.3s; }
+  .component-row .count { width: 80px; font-size: 0.8em; text-align: right; flex-shrink: 0; color: var(--text2); }
+
+  .state-list { max-width: 750px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
+  .state-card { background: var(--surface); border-radius: 8px; padding: 14px; cursor: pointer; transition: background 0.15s; }
+  .state-card:hover { background: var(--surface2); }
+  .state-card .st-name { font-weight: 700; margin-bottom: 4px; }
+  .state-card .st-stats { font-size: 0.8em; color: var(--text2); display: flex; gap: 12px; }
+
+  .source-note { text-align: center; color: var(--text2); font-size: 0.78em; margin-top: 40px; padding: 20px; }
+  .source-note a { color: var(--accent); }
+
+  .no-results { text-align: center; padding: 40px; color: var(--text2); }
+  .loading { text-align: center; padding: 40px; color: var(--text2); }
+
+  @media (max-width: 600px) {
+    .container { padding: 12px; }
+    .stats-grid { grid-template-columns: 1fr 1fr; }
+    .state-list { grid-template-columns: 1fr; }
+    .trend-chart { height: 90px; }
+    .component-row .label { width: 100px; font-size: 0.7em; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>📊 County Population Trends</h1>
+    <p>Population estimates and components of change for 3,144 U.S. counties, 2020–2025. See which counties are growing, shrinking, and why. Census Bureau data.</p>
+  </header>
+
+  <div class="modes">
+    <button id="mode-search" class="active" onclick="setMode('search')">🔍 County Search</button>
+    <button id="mode-state" onclick="setMode('state')">🗺️ By State</button>
+  </div>
+
+  <div id="search-section">
+    <div class="search-box">
+      <input type="text" id="search-input" placeholder="Type a county name..." autofocus oninput="handleSearch()">
+    </div>
+    <div id="search-results" class="results"></div>
+  </div>
+
+  <div id="state-section" style="display:none;">
+    <div id="state-list" class="state-list"></div>
+    <div id="state-counties" class="results" style="display:none;"></div>
+  </div>
+
+  <div id="detail-panel" class="detail-panel"></div>
+
+  <div class="source-note">
+    Data from <a href="https://www2.census.gov/programs-surveys/popest/datasets/2020-2025/counties/totals/" target="_blank">U.S. Census Bureau — Population Estimates Program</a>.
+    Population estimates as of July 1 each year. Components of change: births, deaths, net migration (domestic + international).
+    This is an independent tool — not affiliated with any government agency.
+    <br><span style="font-size:0.85em">&#8226;</span> <a href="https://github.com/GreatTombProductions/quest-board/issues/new?title=county-population%3A%20%5Bbrief%20description%5D&labels=feedback%2Ccounty-population" target="_blank" rel="noopener" style="color:var(--text2)">Found an issue or have feedback?</a>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
